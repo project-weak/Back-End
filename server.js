@@ -5,7 +5,6 @@ const express = require('express');
 const app = express();
 const cors = require("cors");
 const axios = require('axios');
-// const jsonFileHome = require('home');
 const fs = require('fs');
 const path = require('path');
 
@@ -19,7 +18,10 @@ const client = new pg.Client(db_URL);
 app.use(cors());
 app.use(express.json());
 app.get('/', handleHome);
-// app.get('/favorite', handleFavorite);
+app.get('/favorite', handleFavorite);
+app.post('/addMusic', handleMusic);
+app.delete('/DELETE', handleDelete);
+app.put('/UPDATE/:id', handleUpdate);
 
 
 //functions
@@ -34,6 +36,54 @@ function handleHome(req, res) {
   });
 };
 
+function handleFavorite(req, res) {
+  const sql = `SELECT 'liked' AS source_table, id, music_name, singer_name, url_image, audio, comment
+  FROM liked
+  UNION ALL
+  SELECT 'playlist' AS source_table, id, music_name, singer_name, url_image, audio, comment
+  FROM playlist;`;
+  client.query(sql).then((result) => {
+    console.log(sql);
+    return res.status(200).json(result.rows);
+  }).catch((error) => {
+    handleServerError(error, req, res);
+  })
+}
+
+function handleMusic(req, res) {
+  const { music_name, singer_name, url_image, audio, comment, table } = req.body;
+  const sql = `INSERT INTO ${table} (music_name, singer_name, url_image, audio, comment) VALUES ($1, $2, $3, $4, $5) RETURNING *`;
+  client.query(sql, [music_name, singer_name, url_image, audio, comment])
+    .then((result) => {
+      res.status(201).json(result.rows[0]);
+    }).catch((error) => {
+      handleServerError(error, req, res);
+    })
+}
+
+function handleUpdate(req, res) {
+  let id = req.params.id;
+  let { comment, table } = req.body;
+  let sql = `UPDATE ${table} SET comment=$1 WHERE id=$2 RETURNING *;`;
+  const params = [comment, id];
+  client.query(sql, params).then((result) => {
+    return res.json(result.rows[0]);
+  }).catch((error) => {
+    handleServerError(error, req, res);
+  });
+}
+
+function handleDelete(req, res) {
+  const { id, table } = req.body;
+  const sql = `DELETE FROM ${table} WHERE id = $1`;
+  client.query(sql, [id]).then((result) => {
+    console.log('Delete operation successful:', result.rowCount, 'rows deleted.');
+    return res.status(200).send('Record deleted successfully');
+  }).catch((error) => {
+    console.error('Error deleting record:', error);
+    return res.status(500).send('Error deleting record');
+  });
+}
 
 
 // Register the error handlers
