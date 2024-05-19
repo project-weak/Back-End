@@ -7,24 +7,23 @@ const cors = require("cors");
 const axios = require('axios');
 const fs = require('fs');
 const path = require('path');
-
+const pg = require('pg');
 
 const port = process.env.Key_Port || 3000;
 let db_URL = process.env.URL_DB;
 
-let pg = require('pg')
 const client = new pg.Client(db_URL);
 
 app.use(cors());
 app.use(express.json());
+
 app.get('/', handleHome);
 app.get('/favorite', handleFavorite);
 app.post('/addMusic', handleMusic);
 app.delete('/DELETE', handleDelete);
 app.put('/UPDATE/:id', handleUpdate);
 
-
-//functions
+// Functions
 function handleHome(req, res) {
   const filePath = path.join(__dirname, 'home.json');
   fs.readFile(filePath, 'utf8', (err, data) => {
@@ -34,20 +33,21 @@ function handleHome(req, res) {
     }
     res.json(JSON.parse(data));
   });
-};
+}
 
 function handleFavorite(req, res) {
-  const sql = `SELECT 'liked' AS source_table, id, music_name, singer_name, url_image, audio, comment
-  FROM liked
-  UNION ALL
-  SELECT 'playlist' AS source_table, id, music_name, singer_name, url_image, audio, comment
-  FROM playlist;`;
+  const sql = `
+    SELECT 'liked' AS source_table, id, music_name, singer_name, url_image, audio, comment
+    FROM liked
+    UNION ALL
+    SELECT 'playlist' AS source_table, id, music_name, singer_name, url_image, audio, comment
+    FROM playlist;
+  `;
   client.query(sql).then((result) => {
-    console.log(sql);
     return res.status(200).json(result.rows);
   }).catch((error) => {
     handleServerError(error, req, res);
-  })
+  });
 }
 
 function handleMusic(req, res) {
@@ -58,7 +58,7 @@ function handleMusic(req, res) {
       res.status(201).json(result.rows[0]);
     }).catch((error) => {
       handleServerError(error, req, res);
-    })
+    });
 }
 
 function handleUpdate(req, res) {
@@ -85,20 +85,13 @@ function handleDelete(req, res) {
   });
 }
 
-
-// Register the error handlers
-app.use(handleServerError);
-app.use(handlePageNotFoundError);
-
-// Server error handler
+// Error Handlers
 function handleServerError(err, req, res) {
   console.error(err);
-
   const errorResponse = {
     status: 500,
     responseText: err
   };
-
   res.status(500).json(errorResponse);
 }
 
@@ -108,11 +101,17 @@ function handlePageNotFoundError(req, res) {
     responseText: "Page not found"
   };
   res.status(404).json(errorResponse);
-
 }
 
+// Register Error Handlers after routes
+app.use(handleServerError);
+app.use(handlePageNotFoundError);
+
+// Start the server
 client.connect().then(() => {
   app.listen(port, () => {
     console.log(`Server is running on port ${port}`);
   });
-})
+}).catch((err) => {
+  console.error('Failed to connect to the database:', err);
+});
