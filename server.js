@@ -25,8 +25,8 @@ app.put('/UPDATE/:id', handleUpdate);
 
 // Functions
 function handleHome(req, res) {
-  const filePath = path.join(__dirname, 'src/data.json');
-  fs.readFile(filePath, 'utf8', (err, data) => {
+  const dataFilePath = path.join(__dirname, 'src', 'data.json');
+  fs.readFile(dataFilePath, 'utf8', (err, data) => {
     if (err) {
       console.error('Error reading JSON file:', err);
       return res.status(500).json({ error: 'Failed to read data' });
