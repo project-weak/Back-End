@@ -9,7 +9,7 @@ const fs = require('fs');
 const path = require('path');
 const pg = require('pg');
 
-const port = process.env.Key_Port || 3000;
+const port = process.env.Key_Port || 3002;
 let db_URL = process.env.URL_DB;
 
 const client = new pg.Client(db_URL);
@@ -44,7 +44,13 @@ function handleFavorite(req, res) {
     FROM playlist;
   `;
   client.query(sql).then((result) => {
-    return res.status(200).json(result.rows);
+    const Liked = result.rows.filter(item =>{
+      return item.source_table === 'liked'
+    })
+    const Playlist = result.rows.filter(item =>{
+      return item.source_table === 'playlist'
+    })
+    return res.status(200).json({Liked, Playlist});
   }).catch((error) => {
     handleServerError(error, req, res);
   });
