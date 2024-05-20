@@ -80,7 +80,7 @@ function handleUpdate(req, res) {
 }
 
 function handleDelete(req, res) {
-  const { id, table } = req.body;
+  const { id, table } = req.query;
   const sql = `DELETE FROM ${table} WHERE id = $1`;
   client.query(sql, [id]).then((result) => {
     console.log('Delete operation successful:', result.rowCount, 'rows deleted.');
