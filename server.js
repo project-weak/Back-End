@@ -67,17 +67,28 @@ function handleMusic(req, res) {
     });
 }
 
-function handleUpdate(req, res) {
+function handleUpdate(req, res){
   let id = req.params.id;
   let { comment, table } = req.body;
+
+  console.log(`Received parameters - ID: ${id}, Comment: ${comment}, Table: ${table}`);
+
+  if (!table) {
+    return res.status(400).json({ error: 'Table name is required.' });
+  }
+
   let sql = `UPDATE ${table} SET comment=$1 WHERE id=$2 RETURNING *;`;
   const params = [comment, id];
+
   client.query(sql, params).then((result) => {
     return res.json(result.rows[0]);
   }).catch((error) => {
-    handleServerError(error, req, res);
+    console.error('Database error:', error);
+    res.status(500).json({ error: 'Internal server error.' });
   });
-}
+};
+
+
 
 function handleDelete(req, res) {
   const { id, table } = req.query;
